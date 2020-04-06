@@ -14,17 +14,24 @@ using System.Windows.Forms;
  * Program Identification
  * LunarLander-Game Class
  * 
- * This class controls the entire game.  
+ * This class processes the games information such as the module and terrain. It also holds the hashset which is used to register the players movement. 
+ * This class holds the 
  */
 namespace LunarLander
 {
     class Game
     {
+        public PauseReason Reason;
+        Font statsFont;
+        Bitmap bmp;
+        Pen whitePen;
+        Pen landingPen;
+        HashSet<GameKeys> keys;
         private static String imageName = "lander";
         public Bitmap sprite = (Bitmap)Properties.Resources.ResourceManager.GetObject(imageName);           //Loads sprite from resources
+        Terrain terrain = new Terrain();                                                                    //Creates new terrain
+        Player newPlayer;
 
-        Terrain terrain = new Terrain();                                                //Creates new terrain
-        Player newPlayer;                                                                
         public Game(Player newPlayer)
         {
             bmp = new Bitmap(1600, 1000);                                               //Sets the size to x:1600   y:1000                                    
@@ -42,41 +49,30 @@ namespace LunarLander
             Module.Sprite = sprite;                                                     //Passes the bitmap of the sprite to the module class
         }
         
-        
+        //Getters and setters for Module and Paused
         public Module Module { get; set; }
-        
-        public PauseReason Reason;
-        Font statsFont;
-        Bitmap bmp;
-        Pen whitePen;
-        /// <summary>
-        /// Pen for landing pad
-        /// </summary>
-        Pen landingPen;
-        HashSet<GameKeys> keys;
         public bool Paused { get; set; }
-        //Bitmap landerBmp;
 
-        /// <summary>
-        /// Called on key down
-        /// </summary>
-        /// <param name="e"></param>
+        /*
+         * Called from lunarlander class to add key from hashset
+         */
         public void KeyDown(KeyEventArgs e)
         {
-            //KeysPressed |= GetKeyFromKeyEventArgs(e);
-            keys.Add(GetKeyFromKeyEventArgs(e));
+            keys.Add(GetKeyFromKeyEventArgs(e));                    //Registers a valid key to hashset
         }
-
-        /// <summary>
-        /// Called on key up
-        /// </summary>
-        /// <param name="e"></param>
+        /*
+         * Called from lunarlander class to remove key from hashset
+         */
         public void KeyUp(KeyEventArgs e)
         {
-            //KeysPressed &= ~GetKeyFromKeyEventArgs(e);
-            keys.Remove(GetKeyFromKeyEventArgs(e));
+            keys.Remove(GetKeyFromKeyEventArgs(e));                 //removes a valid key from hashset
         }
 
+
+        /*
+         * Checks to see if key is valid. If key isn't valid it is categorized
+         * as unkown
+         */
         private GameKeys GetKeyFromKeyEventArgs(KeyEventArgs e)
         {
             GameKeys key;
@@ -85,17 +81,11 @@ namespace LunarLander
                 case Keys.Up:
                     key = GameKeys.Up;
                     break;
-                case Keys.Down:
-                    key = GameKeys.Down;
-                    break;
                 case Keys.Left:
                     key = GameKeys.Left;
                     break;
                 case Keys.Right:
                     key = GameKeys.Right;
-                    break;
-                case Keys.Space:
-                    key = GameKeys.Space;
                     break;
                 default:
                     key = GameKeys.Unknown;
@@ -104,51 +94,48 @@ namespace LunarLander
             return key;
         }
 
-        /// <summary>
-        /// Checks if left key is pressed
-        /// </summary>
-        /// <param name="key"></param>
-        /// <returns></returns>
+        //Gives the module class access to the hashset to see which keys are being pressed
         public bool IsKeyDown(GameKeys key)
         {
-            //return ((KeysPressed & key) == key);
             return keys.Contains(key);
         }
         
+        //Updates the modules information as well as checks to see if it crashed or landed
         public void Update(TimeSpan ts)
         {
-            //check pause key
-            if (IsKeyDown(GameKeys.Space))
-            {
-                if (Reason == PauseReason.Paused)
-                    Paused = !Paused;
-            }
             //update all game objects
             if (!Paused)
                 Module.Update(ts);
             //check for collisions
             for (int i = 0; i < terrain.points.Count - 1; i++)
             {
+                //check for intersection with terrain
                 if (Module.IntersectsWithLine(terrain.points[i], terrain.points[i + 1]))
                 {
                     //check if we crashed 
                     Paused = true;
                     Reason = PauseReason.Crashed;
 
+                    //if it's exactly above the terrain then it landed
                     if (terrain.points[i].Y == terrain.points[i + 1].Y)
                         if ((Module.sY < Module.MaxLandingSpeed) && (Module.IsRotatedForLanding))
                             Reason = PauseReason.Landed;
                 }
             }
         }
-
+        /*
+         * Draws the screen. This includes drawing the sprite based on location, the terrain, and the game information to the screen
+         */
         public Bitmap Draw()
         {
             using (Graphics g = Graphics.FromImage(bmp))
             {
+
                 g.Clear(Color.Black);
-                //draw the ground
+                
+                //Draw the ground by drawing a line through all the points in the terrain
                 for (int i = 0; i < terrain.points.Count - 1; i++)
+                    //Check to see 
                     g.DrawLine((terrain.points[i].Y == terrain.points[i + 1].Y) ? landingPen : whitePen, terrain.points[i], terrain.points[i + 1]);
 
 
@@ -169,14 +156,13 @@ namespace LunarLander
                 g.DrawString("Fuel: " + Module.Fuel, statsFont, Brushes.White, posStatX, 0);
                 g.DrawString(string.Format("Lander: x={0:0.00} y={1:0.00}", Module.X, Module.Y, ConvertAngle.RadiansToDegrees(Module.Rotation)), statsFont, Brushes.White, posStatX, 30);
                 g.DrawString(string.Format("Speed: x={0:0.00} y={1:0.00}", Module.sX, Module.sY, 0), statsFont, Brushes.White, posStatX, 60);
-                g.DrawString("Score:   " + newPlayer.getScore().ToString(), statsFont, Brushes.White, 1000, 10);
-                if (Paused) //or game over
+                g.DrawString("Score:   " + newPlayer.getScore().ToString(), statsFont, Brushes.White, 1300, 10);
+                //display reason if paused
+                if (Paused)
                     g.DrawString(Reason.ToString(), new Font(statsFont, FontStyle.Bold), Brushes.White, (bmp.Width) / 2, (bmp.Height) / 2 - 200);
             }
             return bmp;
         }
-
-
         public enum PauseReason
         {
             Paused, Crashed, Landed

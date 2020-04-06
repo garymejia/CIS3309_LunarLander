@@ -5,38 +5,69 @@ using System.Text;
 using System.Drawing;
 namespace LunarLander
 {
+
+    /*
+     * 
+     * Gary Mejia and Ji Hwan Park
+     * CIS 3309
+     * Date Due: 4/5/2020
+     * 
+     * Program Identification
+     * LunarLander-Module Class
+     * 
+        This class is responsible for handling
+        the events associated with
+        the ship(module) itself. It will factor in the gravity,
+        the max speed in which the ship may land not crash,
+        fuel, and more.
+
+        In addition, it implements equations, getting, and setting points
+        of the rectangle where the module is contained inside.
+        This will make sure the landing, turning, and thrusting of the
+        ship is working properly.        
+    */
+
     class Module
     {
+        //Constructor
         public Module()
         {
+            //sets the starting fuel and coordinates
             Fuel = 300;
-            X = 800;
+            X = 800;        
             Y = 200;
         }
 
-        public const float MaxLandingSpeed = 15;
-        const float heightsize = 25;
-        const float widthsize = 20;
-        double Gravity = 6;
-        double ThrustSpeed = 30;
-        const double RotationBurnedFuel = 0.5;
-        public Bitmap Sprite { get; set; }
+        public const float MaxLandingSpeed = 15;                    //Max speed the module can be at when landing
+        const float heightsize = 25;                                //Height of the sprites container
+        const float widthsize = 20;                                 //Width of the sprites container
+        double Gravity = 6;                                         //Gravity or speed that the module will be continuously be falling at
+        double ThrustSpeed = 30;                                    //speed of the module
+        const double RotationBurnedFuel = 0.5;                      //amount of fuel being burned when module is rotated
 
+        //Getters and setters for game and sprite
+        public Bitmap Sprite { get; set; }
         public Game Game { get; set; }
 
-        /// <summary>
-        /// X speed in m/s 
-        /// </summary>
+        //getter and setter for the speed the module moves on x plane
         public double sX { get; set; }
-
-        /// <summary>
-        /// Y speed in m/s
-        /// </summary>
+        //getter and setter for the speed the module moves on y plane
         public double sY { get; set; }
+        //getter setter for JUST the location of x plane itself
+        public double X { get; set; }
 
-        /// <summary>
-        /// Location of lander
-        /// </summary>
+        //getter setter for JUST the location of x plane itself
+        public double Y { get; set; }
+
+        //getter setter for the fuel
+        public double Fuel { get; set; }
+
+
+        //getter setter for the angle of the ship in rads
+        public double Rotation { get; set; }
+
+
+        //returns a point with the coordiantes of the lander 
         public PointF Location
         {
             get
@@ -45,9 +76,8 @@ namespace LunarLander
             }
         }
 
-        /// <summary>
-        /// Location of "top left" point of our graphics sprite
-        /// </summary>
+        // Location of "top left" point of sprite
+        //Constantly updated as the x and y coordinate changes
         public PointF LocationGraphics
         {
             get
@@ -56,9 +86,8 @@ namespace LunarLander
             }
         }
 
-        /// <summary>
-        /// rectangle of the sprite
-        /// </summary>
+        //The rectangle encapsulates the sprite. Using the rectangle we are able to detect 
+        //when the module intersects the terrain
         public RectangleF Rectangle
         {
             get
@@ -67,40 +96,20 @@ namespace LunarLander
             }
         }
 
-        /// <summary>
-        /// X location
-        /// </summary>
-        public double X { get; set; }
-
-        /// <summary>
-        /// Y location
-        /// </summary>
-        public double Y { get; set; }
-
-        /// <summary>
-        /// current angle in rads
-        /// </summary>
-        public double Rotation { get; set; }
-
-        /// <summary>
-        /// current angle in degrees
-        /// </summary>
+        //getter setter for the angle of the ship in degrees
         public double RotationDegrees
         {
             get { return Rotation / Math.PI * 180; }
         }
 
-        /// <summary>
-        /// Updates lander with specified timespan
-        /// </summary>
-        /// <param name="ts"></param>
+        //moves the module 
+        //takes into account the gravity
         public void Update(TimeSpan ts)
         {
-            Console.WriteLine(ts);
             //gravity
             sY += Gravity * ts.TotalSeconds;
 
-            //thrust
+            //thrust (only when up, right, and left pressed down)
             if (Game.IsKeyDown(GameKeys.Up))
                 Thrust(ts.TotalSeconds);
             if (Game.IsKeyDown(GameKeys.Right))
@@ -108,16 +117,15 @@ namespace LunarLander
             if (Game.IsKeyDown(GameKeys.Left))
                 RotateRight(ts.TotalSeconds);
 
-            //calculate new location
+            //calculates new location
             X += sX * ts.TotalSeconds;
             Y += sY * ts.TotalSeconds;
 
         }
 
 
-        /// <summary>
-        /// Apply rotation throttle
-        /// </summary>
+        //this applies the rotation of the rectangle to the left
+        //when the "left" arrow is pressed down
         private void RotateLeft(double totalSeconds)
         {
             if (Fuel < 0)
@@ -127,6 +135,8 @@ namespace LunarLander
             Fuel -= RotationBurnedFuel;
         }
 
+        //this applies the rotation of the rectangle to the right
+        //when the "right" arrow is pressed down
         private void RotateRight(double totalSeconds)
         {
             if (Fuel < 0)
@@ -138,27 +148,23 @@ namespace LunarLander
         }
 
 
-        /// <summary>
-        /// Thrust the engines
-        /// </summary>
+        //This method handles the thrust of the module (when the player pressed the up key)
         private void Thrust(double totalSeconds)
         {
+            //checks tank
             if (Fuel < 0)
                 return;
             //lander rotation 
             //add thrust
             sY -= Math.Sin(ConvertAngle.NormalizeAngle(Rotation + Math.PI / 2)) * totalSeconds * ThrustSpeed;
-            Console.WriteLine(sY);
             sX -= Math.Cos(ConvertAngle.NormalizeAngle(Rotation + Math.PI / 2)) * totalSeconds * ThrustSpeed;
-            //decrease fuel
+            //decrease fuel as thrust is active (key is being pressed)
             Fuel--;
         }
-
-        public double Fuel { get; set; }
-
+        //Used with game class to check if the module intersects with the terrain
+        //get all 4 points of our bounding rectangle and rotate them around its center
         public bool IntersectsWithLine(PointF a, PointF b)
         {
-            //get all 4 points of our bounding square and rotate them around its center
             //top left
             if (TestPointUnderLine(a, b, new PointF(Rectangle.Left, Rectangle.Top)))
                 return true;
@@ -176,24 +182,16 @@ namespace LunarLander
                 return true;
 
 
-            return false;
+            return false; //return false otherwise
         }
 
-        /// <summary>
-        /// Checks if point is "under" a line
-        /// </summary>x
-        /// <param name="left"></param>
-        /// <param name="right"></param>
-        /// <param name="point"></param>
-        /// <returns></returns>
+        //Check if point is under a line
         private bool TestPointUnderLine(PointF left, PointF right, PointF point)
         {
             //skip if point is not in x-range of our line
             if (point.X < left.X || point.X > right.X)
                 return false;
 
-            //basically test if Line.GetYCoordAtX(point.X) > point.Y
-            //get elements for line equation
             //we want to get coords of each point on line by using y=a*x+b
 
             //a is increment for each X
@@ -208,7 +206,7 @@ namespace LunarLander
             //if point is "under" the line, we 
             return (point.Y > (a * newX + b));
         }
-
+        //depending if the degree rotation is greater than 350 degrees, or less than 10 degrees return true or false
         public bool IsRotatedForLanding
         {
             get

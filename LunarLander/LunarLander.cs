@@ -16,7 +16,7 @@ using System.Windows.Input;
  * Date Due: 4/5/2020
  * 
  * Program Identification
- * LunarLander-MenuForm Class
+ * LunarLander-LunarLander Class
  * 
  * This class is responsible for processing the event listeners, updating the screen using the draw method
  * from the game class and controlling the players score based off their progress
@@ -56,6 +56,16 @@ namespace LunarLander
                     }
                     game = new Game(player);                            //new Game
                     picInstructions.Enabled = true;                     //Enables user to click on the instructions icon
+                    break;
+                case Keys.Space:
+                    if (game.Paused == true && game.Reason == Game.PauseReason.Paused)
+                    {
+                        game.Paused = false;
+                    }
+                    else if(game.Paused == false)
+                    {
+                        game.Paused = true;
+                    }
                     break;
                 case Keys.Back:
                     this.Close();                                       //Closes program if they click backspace key
